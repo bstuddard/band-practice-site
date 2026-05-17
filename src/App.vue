@@ -116,6 +116,7 @@ function originalIndex(id: number) {
     />
 
     <SongSection
+      v-if="tier1.length || tier2.length === 0"
       title="Currently Learning"
       :count="tier1.length"
       marked
@@ -174,7 +175,6 @@ function originalIndex(id: number) {
           v-for="(group, gi) in filteredGroups"
           :key="group.key"
           class="setblock"
-          :class="`setblock--${group.key}`"
         >
           <div v-if="gi > 0 && group.key === 'set2'" class="intermission" aria-label="Set break">
             <span class="intermission__rule" aria-hidden="true"></span>
