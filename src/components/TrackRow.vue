@@ -63,6 +63,22 @@ const playAria = computed(() =>
       <span class="row__title">{{ song.title }}</span>
     </span>
 
+    <span
+      v-if="song.stars"
+      class="row__stars"
+      :aria-label="`Difficulty ${song.stars} of 5`"
+      :title="`Difficulty ${song.stars}/5`"
+    >
+      <span
+        v-for="n in 5"
+        :key="n"
+        class="row__star"
+        :class="{ 'row__star--on': n <= song.stars }"
+        aria-hidden="true"
+      >★</span>
+    </span>
+    <span v-else class="row__stars row__stars--empty" aria-hidden="true">—</span>
+
     <span class="row__flags" aria-hidden="true">
       <span v-if="song.guitarProUrl" class="row__flag" title="Tab available">tab</span>
       <span v-else-if="isOriginal" class="row__flag row__flag--original">original</span>
@@ -82,7 +98,7 @@ const playAria = computed(() =>
 .row {
   position: relative;
   display: grid;
-  grid-template-columns: 44px 56px 1fr auto 60px auto;
+  grid-template-columns: 44px 56px 1fr 72px auto 60px auto;
   gap: 18px;
   align-items: center;
   padding: 10px 8px 10px 12px;
@@ -222,6 +238,25 @@ a.row__art--original {
   text-wrap: pretty;
 }
 
+.row__stars {
+  display: inline-flex;
+  gap: 1px;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--color-muted-3);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.row__star--on {
+  color: var(--color-brass);
+}
+.row__stars--empty {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-muted-3);
+  letter-spacing: 0.08em;
+}
+
 .row__flags {
   display: flex;
   gap: 6px;
@@ -266,6 +301,7 @@ a.row__art--original {
     gap: 14px;
     padding: 12px 8px;
   }
+  .row__stars,
   .row__flags {
     display: none;
   }

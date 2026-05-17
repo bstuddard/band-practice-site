@@ -1,4 +1,6 @@
-export type Category = 'set1' | 'set2' | 'encore' | 'rotation'
+export type Category = 'easy' | null
+
+export type Stars = 1 | 2 | 3 | 4 | 5 | null
 
 export interface Song {
   id: number
@@ -10,6 +12,7 @@ export interface Song {
   lyricsUrl: string
   guitarProUrl: string | null
   learningTier: 1 | 2 | null
+  stars: Stars
   category: Category
   durationSeconds: number | null
 }

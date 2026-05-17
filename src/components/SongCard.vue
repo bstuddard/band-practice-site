@@ -63,9 +63,25 @@ const markLabel = computed(() => {
     </component>
 
     <div class="feature__body">
-      <div class="feature__mark" :class="{ 'feature__mark--original': isOriginal }">
-        <span class="feature__mark-dot" aria-hidden="true"></span>
-        <span>{{ markLabel }}</span>
+      <div class="feature__markrow">
+        <div class="feature__mark" :class="{ 'feature__mark--original': isOriginal }">
+          <span class="feature__mark-dot" aria-hidden="true"></span>
+          <span>{{ markLabel }}</span>
+        </div>
+        <span
+          v-if="song.stars"
+          class="feature__stars"
+          :aria-label="`Difficulty ${song.stars} of 5`"
+          :title="`Difficulty ${song.stars}/5`"
+        >
+          <span
+            v-for="n in 5"
+            :key="n"
+            class="feature__star"
+            :class="{ 'feature__star--on': n <= song.stars }"
+            aria-hidden="true"
+          >★</span>
+        </span>
       </div>
       <p class="feature__artist">{{ song.artist }}</p>
       <h3 class="feature__title">{{ song.title }}</h3>
@@ -223,6 +239,23 @@ const markLabel = computed(() => {
   gap: 10px;
   flex: 1;
   padding: 18px 18px 20px;
+}
+
+.feature__markrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.feature__stars {
+  display: inline-flex;
+  gap: 1px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--color-muted-3);
+}
+.feature__star--on {
+  color: var(--color-brass);
 }
 
 .feature__mark {

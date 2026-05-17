@@ -14,10 +14,8 @@ const totalDigits = String(songs.length).length
 const indexById = new Map(songs.map((s, i) => [s.id, i]))
 
 const setGroups: Array<{ key: Category; label: string }> = [
-  { key: 'set1', label: 'Set 1' },
-  { key: 'set2', label: 'Set 2' },
-  { key: 'encore', label: 'Encore' },
-  { key: 'rotation', label: 'Rotation' },
+  { key: 'easy', label: 'Easy' },
+  { key: null, label: 'Repertoire' },
 ]
 
 function formatDuration(seconds: number | null): string {
@@ -172,16 +170,10 @@ function originalIndex(id: number) {
       </div>
       <template v-else>
         <div
-          v-for="(group, gi) in filteredGroups"
-          :key="group.key"
+          v-for="group in filteredGroups"
+          :key="group.key ?? 'uncategorized'"
           class="setblock"
         >
-          <div v-if="gi > 0 && group.key === 'set2'" class="intermission" aria-label="Set break">
-            <span class="intermission__rule" aria-hidden="true"></span>
-            <span class="intermission__label">Set Break</span>
-            <span class="intermission__rule" aria-hidden="true"></span>
-          </div>
-
           <div class="setblock__head">
             <div class="setblock__head-left">
               <h3 class="setblock__title">{{ group.label }}</h3>
@@ -198,6 +190,7 @@ function originalIndex(id: number) {
               <span>№</span>
               <span></span>
               <span>Artist / Title</span>
+              <span>Diff</span>
               <span></span>
               <span>Time</span>
               <span>Links</span>
@@ -259,7 +252,7 @@ function originalIndex(id: number) {
 }
 .tracklist__head {
   display: grid;
-  grid-template-columns: 44px 56px 1fr auto 60px auto;
+  grid-template-columns: 44px 56px 1fr 72px auto 60px auto;
   gap: 18px;
   align-items: center;
   padding: 10px 8px 10px 12px;
@@ -319,31 +312,6 @@ function originalIndex(id: number) {
 }
 .setblock__dot {
   color: var(--color-muted-2);
-}
-
-.intermission {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: 6px 0 18px;
-  color: var(--color-brass);
-}
-.intermission__rule {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--color-line-brass) 20%,
-    var(--color-line-brass) 80%,
-    transparent
-  );
-}
-.intermission__label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
 }
 
 .empty {
