@@ -300,6 +300,8 @@ function guitarLabel(s: Song): string | null {
 .stage__tag--key {
   color: #f3ead7;
   background: rgba(196, 115, 56, 0.16);
+  text-transform: none;
+  letter-spacing: 0.05em;
 }
 .stage__tag--guitar {
   color: rgba(196, 115, 56, 0.95);
