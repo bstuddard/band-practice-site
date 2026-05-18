@@ -16,6 +16,11 @@ const playAria = computed(() =>
     ? `Listen to ${props.song.artist} — ${props.song.title} on SoundCloud`
     : `Watch ${props.song.artist} — ${props.song.title} on YouTube`,
 )
+const tabUrl = computed(() => {
+  if (isOriginal.value) return ''
+  const query = `${props.song.title} ${props.song.artist}`.replace(/\s+/g, '+')
+  return `https://www.ultimate-guitar.com/search.php?search_type=title&value=${query}`
+})
 </script>
 
 <template>
@@ -44,7 +49,7 @@ const playAria = computed(() =>
     >
       Lyrics
     </a>
-    <template v-if="song.guitarProUrl">
+    <template v-if="tabUrl">
       <span
         v-if="playUrl || song.lyricsUrl"
         class="actions__sep"
@@ -52,10 +57,10 @@ const playAria = computed(() =>
       >·</span>
       <a
         class="actions__link"
-        :href="song.guitarProUrl"
+        :href="tabUrl"
         target="_blank"
         rel="noopener noreferrer"
-        :aria-label="`Guitar tab for ${song.artist} — ${song.title}`"
+        :aria-label="`Search Ultimate Guitar for ${song.artist} — ${song.title}`"
       >
         Tab
       </a>

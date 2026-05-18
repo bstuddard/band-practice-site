@@ -1,22 +1,44 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import data from './data/songs.json'
-import type { Category, Song } from './types'
+import type { Song } from './types'
+import { setNumber } from './types'
 import PlaylistHeader from './components/PlaylistHeader.vue'
 import SongSection from './components/SongSection.vue'
 import SongCard from './components/SongCard.vue'
 import TrackRow from './components/TrackRow.vue'
 import CreditsStrip from './components/CreditsStrip.vue'
+import StageView from './components/StageView.vue'
 
 const songs = data.songs as Song[]
 const playlistUrl = data.playlistUrl
 const totalDigits = String(songs.length).length
 const indexById = new Map(songs.map((s, i) => [s.id, i]))
 
-const setGroups: Array<{ key: Category; label: string }> = [
-  { key: 'easy', label: 'Easy' },
-  { key: null, label: 'Repertoire' },
-]
+interface SetGroup {
+  key: string
+  label: string
+  showGuitar: boolean
+  showStars: boolean
+}
+
+const setGroups = computed<SetGroup[]>(() => {
+  const numbers = new Set<number>()
+  for (const s of songs) {
+    const n = setNumber(s.category)
+    if (n !== null) numbers.add(n)
+  }
+  const sets: SetGroup[] = [...numbers]
+    .sort((a, b) => a - b)
+    .map((n) => ({
+      key: `set${n}`,
+      label: `Set ${n}`,
+      showGuitar: true,
+      showStars: false,
+    }))
+  sets.push({ key: 'ideas', label: 'Ideas', showGuitar: false, showStars: true })
+  return sets
+})
 
 function formatDuration(seconds: number | null): string {
   if (!seconds || seconds <= 0) return '—'
@@ -34,15 +56,17 @@ function formatTotal(seconds: number): string {
   return m === 0 ? `${h} hr` : `${h} hr ${m} min`
 }
 
-const filter = ref('')
-
-onMounted(() => {
+function readParams() {
   try {
-    filter.value = new URL(location.href).searchParams.get('q') || ''
+    return new URL(location.href).searchParams
   } catch {
-    /* ignore */
+    return new URLSearchParams()
   }
-})
+}
+
+const initial = readParams()
+const filter = ref(initial.get('q') || '')
+const stageMode = ref(initial.get('stage') === '1')
 
 // Debounce URL writes so a keystroke spree doesn't burn through replaceState.
 let urlTimer: ReturnType<typeof setTimeout> | undefined
@@ -60,9 +84,49 @@ watch(filter, (value) => {
   }, 250)
 })
 
+// Stage mode pushes a history entry on enter so the back button exits it.
+// popstate keeps `stageMode` in sync with whatever the URL says.
+function enterStage() {
+  if (stageMode.value) return
+  stageMode.value = true
+  try {
+    const url = new URL(location.href)
+    url.searchParams.set('stage', '1')
+    history.pushState({ stage: true }, '', url.toString())
+  } catch {
+    /* ignore */
+  }
+}
+function exitStage() {
+  if (!stageMode.value) return
+  // Prefer back() so the pushed entry is unwound; popstate handler flips the flag.
+  // Fall back to direct mutation if we're at the start of history.
+  if (history.state && (history.state as { stage?: boolean }).stage) {
+    history.back()
+  } else {
+    stageMode.value = false
+    try {
+      const url = new URL(location.href)
+      url.searchParams.delete('stage')
+      history.replaceState(null, '', url.toString())
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+function onPopState() {
+  stageMode.value = readParams().get('stage') === '1'
+}
+onMounted(() => window.addEventListener('popstate', onPopState))
+onUnmounted(() => window.removeEventListener('popstate', onPopState))
+
 const tier1 = computed(() => songs.filter((s) => s.learningTier === 1))
 const tier2 = computed(() => songs.filter((s) => s.learningTier === 2))
 const learning = computed(() => [...tier1.value, ...tier2.value])
+
+// "Setlist" = songs assigned to a Set. Ideas are a holding pen, not part of the setlist.
+const setSongs = computed(() => songs.filter((s) => s.category !== 'ideas'))
 
 const artistRoll = computed<Array<[string, number]>>(() => {
   const counts = new Map<string, number>()
@@ -85,9 +149,17 @@ const filtered = computed(() => {
 const matchingArtists = computed(() => new Set(filtered.value.map((s) => s.artist)))
 
 const filteredGroups = computed(() =>
-  setGroups
+  setGroups.value
     .map((g) => {
       const items = filtered.value.filter((s) => s.category === g.key)
+      // Sets play in setPosition order; Ideas keep their JSON array order.
+      if (g.key !== 'ideas') {
+        items.sort((a, b) => {
+          const ap = a.setPosition ?? Number.POSITIVE_INFINITY
+          const bp = b.setPosition ?? Number.POSITIVE_INFINITY
+          return ap - bp
+        })
+      }
       const seconds = items.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
       return { ...g, items, seconds }
     })
@@ -95,10 +167,14 @@ const filteredGroups = computed(() =>
 )
 
 const totalSeconds = computed(() =>
-  songs.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0),
+  setSongs.value.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0),
 )
 
 const totalLabel = computed(() => formatTotal(totalSeconds.value))
+
+const filteredSetCount = computed(
+  () => filtered.value.filter((s) => s.category !== 'ideas').length,
+)
 
 function originalIndex(id: number) {
   return indexById.get(id) ?? 0
@@ -106,7 +182,18 @@ function originalIndex(id: number) {
 </script>
 
 <template>
-  <div class="container">
+  <StageView v-if="stageMode" :songs="songs" @exit="exitStage" />
+  <div v-else class="container">
+    <div class="topbar">
+      <button
+        class="topbar__stage"
+        type="button"
+        @click="enterStage"
+        aria-label="Open stage view"
+      >
+        Stage View ▸
+      </button>
+    </div>
     <PlaylistHeader
       :playlist-url="playlistUrl"
       :total-count="songs.length"
@@ -155,8 +242,8 @@ function originalIndex(id: number) {
 
     <SongSection
       title="The Full Setlist"
-      :subtitle="`${songs.length} tracks · approx. ${totalLabel} total.`"
-      :count="filtered.length"
+      :subtitle="`${setSongs.length} tracks · approx. ${totalLabel} total.`"
+      :count="filteredSetCount"
     >
       <CreditsStrip
         v-model="filter"
@@ -171,7 +258,7 @@ function originalIndex(id: number) {
       <template v-else>
         <div
           v-for="group in filteredGroups"
-          :key="group.key ?? 'uncategorized'"
+          :key="group.key"
           class="setblock"
         >
           <div class="setblock__head">
@@ -190,19 +277,21 @@ function originalIndex(id: number) {
               <span>№</span>
               <span></span>
               <span>Artist / Title</span>
-              <span>Diff</span>
-              <span></span>
+              <span>{{ group.showStars ? 'Diff' : 'Guitar' }}</span>
+              <span>Key</span>
               <span>Time</span>
               <span>Links</span>
             </div>
             <TrackRow
-              v-for="song in group.items"
+              v-for="(song, i) in group.items"
               :key="song.id"
               :song="song"
               :index="originalIndex(song.id)"
-              :delay="originalIndex(song.id)"
+              :delay="i"
               :total-digits="totalDigits"
               :duration="formatDuration(song.durationSeconds)"
+              :show-stars="group.showStars"
+              :show-guitar="group.showGuitar"
             />
           </div>
         </div>
@@ -232,6 +321,36 @@ function originalIndex(id: number) {
   padding: 36px 32px 80px;
 }
 
+.topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
+}
+.topbar__stage {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--color-brass);
+  border: 1px solid var(--color-line-brass);
+  padding: 8px 14px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+  min-height: 40px;
+}
+.topbar__stage:hover,
+.topbar__stage:focus-visible {
+  background: rgba(196, 115, 56, 0.08);
+  color: var(--color-ember);
+  border-color: var(--color-brass);
+  outline: none;
+}
+
 .rule {
   border: 0;
   height: 1px;
@@ -252,7 +371,7 @@ function originalIndex(id: number) {
 }
 .tracklist__head {
   display: grid;
-  grid-template-columns: 44px 56px 1fr 72px auto 60px auto;
+  grid-template-columns: 44px 56px 1fr 72px 96px 60px 220px;
   gap: 18px;
   align-items: center;
   padding: 10px 8px 10px 12px;

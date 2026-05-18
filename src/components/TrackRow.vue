@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { isOriginalSong, type Song } from '../types'
+import { GUITAR_LABELS, isOriginalSong, type Song } from '../types'
 import ActionLinks from './ActionLinks.vue'
 
 const props = withDefaults(
@@ -10,8 +10,16 @@ const props = withDefaults(
     totalDigits?: number
     delay?: number
     duration?: string
+    showStars?: boolean
+    showGuitar?: boolean
   }>(),
-  { totalDigits: 2, delay: 0, duration: '' },
+  {
+    totalDigits: 2,
+    delay: 0,
+    duration: '',
+    showStars: true,
+    showGuitar: false,
+  },
 )
 
 const num = computed(() => String(props.index + 1).padStart(props.totalDigits, '0'))
@@ -23,6 +31,9 @@ const playAria = computed(() =>
   isOriginal.value
     ? `Listen to ${props.song.artist} — ${props.song.title} on SoundCloud`
     : `Watch ${props.song.artist} — ${props.song.title} on YouTube`,
+)
+const guitarLabel = computed(() =>
+  props.song.guitar ? GUITAR_LABELS[props.song.guitar] : null,
 )
 </script>
 
@@ -63,25 +74,40 @@ const playAria = computed(() =>
       <span class="row__title">{{ song.title }}</span>
     </span>
 
-    <span
-      v-if="song.stars"
-      class="row__stars"
-      :aria-label="`Difficulty ${song.stars} of 5`"
-      :title="`Difficulty ${song.stars}/5`"
-    >
-      <span
-        v-for="n in 5"
-        :key="n"
-        class="row__star"
-        :class="{ 'row__star--on': n <= song.stars }"
-        aria-hidden="true"
-      >★</span>
-    </span>
-    <span v-else class="row__stars row__stars--empty" aria-hidden="true">—</span>
+    <span class="row__tags">
+      <template v-if="showStars">
+        <span
+          v-if="song.stars"
+          class="row__stars"
+          :aria-label="`Difficulty ${song.stars} of 5`"
+          :title="`Difficulty ${song.stars}/5`"
+        >
+          <span
+            v-for="n in 5"
+            :key="n"
+            class="row__star"
+            :class="{ 'row__star--on': n <= song.stars }"
+            aria-hidden="true"
+          >★</span>
+        </span>
+        <span v-else class="row__stars row__stars--empty" aria-hidden="true">—</span>
+      </template>
+      <template v-else-if="showGuitar">
+        <span
+          v-if="guitarLabel"
+          class="row__guitar"
+          :title="`Guitar: ${guitarLabel}`"
+        >{{ guitarLabel }}</span>
+        <span v-else class="row__guitar row__guitar--empty" aria-hidden="true">—</span>
+      </template>
+      <span v-else class="row__stars row__stars--empty" aria-hidden="true"></span>
 
-    <span class="row__flags" aria-hidden="true">
-      <span v-if="song.guitarProUrl" class="row__flag" title="Tab available">tab</span>
-      <span v-else-if="isOriginal" class="row__flag row__flag--original">original</span>
+      <span
+        v-if="song.key"
+        class="row__key"
+        :title="`Key: ${song.key}`"
+      >{{ song.key }}</span>
+      <span v-else class="row__key row__key--empty" aria-hidden="true">—</span>
     </span>
 
     <span class="row__duration" :title="isOriginal ? 'Approx. demo length' : 'Approx. recorded length'">
@@ -98,7 +124,9 @@ const playAria = computed(() =>
 .row {
   position: relative;
   display: grid;
-  grid-template-columns: 44px 56px 1fr 72px auto 60px auto;
+  /* Fixed last column (actions) so the row grid matches the header grid exactly;
+     auto-sized actions varied per-row and pushed the 1fr title column around. */
+  grid-template-columns: 44px 56px 1fr 72px 96px 60px 220px;
   gap: 18px;
   align-items: center;
   padding: 10px 8px 10px 12px;
@@ -257,23 +285,45 @@ a.row__art--original {
   letter-spacing: 0.08em;
 }
 
-.row__flags {
-  display: flex;
-  gap: 6px;
-}
-.row__flag {
+.row__guitar {
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
+  font-size: 10px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--color-brass-soft);
+  color: var(--color-brass);
   border: 1px solid var(--color-line-brass);
-  padding: 2px 6px;
+  padding: 3px 7px;
   border-radius: 1px;
+  justify-self: start;
+  line-height: 1;
 }
-.row__flag--original {
-  color: var(--color-muted-2);
-  border-color: var(--color-line-2);
+.row__guitar--empty {
+  color: var(--color-muted-3);
+  border-color: transparent;
+  padding: 0;
+  letter-spacing: 0.08em;
+}
+
+.row__key {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--color-brass-soft);
+  justify-self: start;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.row__key--empty {
+  color: var(--color-muted-3);
+  letter-spacing: 0.08em;
+}
+
+/* Desktop: tags wrapper is transparent — children flow into the row grid as separate cells. */
+.row__tags {
+  display: contents;
 }
 
 .row__duration {
@@ -297,22 +347,35 @@ a.row__art--original {
   .row {
     /* 56px matches the hard-coded art width; was 52px and bled 4px into the title. */
     grid-template-columns: 36px 56px 1fr auto;
-    grid-template-rows: auto auto;
-    gap: 14px;
+    grid-template-rows: auto auto auto;
+    gap: 6px 14px;
     padding: 12px 8px;
   }
-  .row__stars,
-  .row__flags {
-    display: none;
-  }
+  .row__num { grid-column: 1; grid-row: 1; }
+  .row__art { grid-column: 2; grid-row: 1; }
+  .row__meta { grid-column: 3; grid-row: 1; }
   .row__duration {
+    grid-column: 4;
+    grid-row: 1;
     align-self: start;
     padding-top: 2px;
   }
-  /* Span row 2 full width so the col-1/row-2 gap doesn't sit empty under the number. */
+  /* Row 2: tags sit below the image, spanning across to the duration edge. */
+  .row__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    grid-column: 3 / -1;
+    grid-row: 2;
+    margin-top: 2px;
+  }
+  /* Row 3: actions span the full width. */
   .row__actions {
     grid-column: 1 / -1;
+    grid-row: 3;
     padding-left: 2px;
+    margin-top: 4px;
   }
   .row__title {
     font-size: 17px;

@@ -159,6 +159,12 @@ function onInput(e: Event) {
 .credits__search input::placeholder {
   color: var(--color-muted-2);
 }
+/* Suppress WebKit's built-in search clear button so it doesn't double up with ours. */
+.credits__search input::-webkit-search-cancel-button,
+.credits__search input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
 .credits__clear {
   background: transparent;
   border: 0;

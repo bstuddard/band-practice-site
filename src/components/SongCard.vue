@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { isOriginalSong, type Song } from '../types'
+import { GUITAR_LABELS, isOriginalSong, type Song } from '../types'
 import ActionLinks from './ActionLinks.vue'
 
 const props = withDefaults(
@@ -27,6 +27,9 @@ const markLabel = computed(() => {
   if (props.song.learningTier === 2) return 'Tier 2'
   return 'Tier 1'
 })
+const guitarLabel = computed(() =>
+  props.song.guitar ? GUITAR_LABELS[props.song.guitar] : null,
+)
 </script>
 
 <template>
@@ -68,20 +71,32 @@ const markLabel = computed(() => {
           <span class="feature__mark-dot" aria-hidden="true"></span>
           <span>{{ markLabel }}</span>
         </div>
-        <span
-          v-if="song.stars"
-          class="feature__stars"
-          :aria-label="`Difficulty ${song.stars} of 5`"
-          :title="`Difficulty ${song.stars}/5`"
-        >
+        <div class="feature__markrow-right">
           <span
-            v-for="n in 5"
-            :key="n"
-            class="feature__star"
-            :class="{ 'feature__star--on': n <= song.stars }"
-            aria-hidden="true"
-          >★</span>
-        </span>
+            v-if="song.key"
+            class="feature__key"
+            :title="`Key: ${song.key}`"
+          >{{ song.key }}</span>
+          <span
+            v-if="guitarLabel"
+            class="feature__guitar"
+            :title="`Guitar: ${guitarLabel}`"
+          >{{ guitarLabel }}</span>
+          <span
+            v-if="song.stars"
+            class="feature__stars"
+            :aria-label="`Difficulty ${song.stars} of 5`"
+            :title="`Difficulty ${song.stars}/5`"
+          >
+            <span
+              v-for="n in 5"
+              :key="n"
+              class="feature__star"
+              :class="{ 'feature__star--on': n <= song.stars }"
+              aria-hidden="true"
+            >★</span>
+          </span>
+        </div>
       </div>
       <p class="feature__artist">{{ song.artist }}</p>
       <h3 class="feature__title">{{ song.title }}</h3>
@@ -246,6 +261,32 @@ const markLabel = computed(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+.feature__markrow-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.feature__guitar {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-brass);
+  border: 1px solid var(--color-line-brass);
+  padding: 3px 7px;
+  border-radius: 1px;
+  line-height: 1;
+}
+.feature__key {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--color-brass-soft);
+  border: 1px dashed var(--color-line-brass);
+  padding: 3px 7px;
+  border-radius: 1px;
+  line-height: 1;
 }
 .feature__stars {
   display: inline-flex;
