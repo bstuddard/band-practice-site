@@ -43,7 +43,7 @@ defineProps<{
             <span class="mast__cta-sub">on YouTube ↗</span>
           </span>
         </a>
-        <div class="mast__side-note">all {{ totalCount }} tracks · in order</div>
+        <div class="mast__side-note">all {{ totalCount }} tracks</div>
       </aside>
     </div>
   </header>
