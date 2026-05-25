@@ -119,10 +119,36 @@ a quick confirmation before making changes, since removals are destructive.
 **5a. Remove extras.** For each video to remove: open its 3-dot "⋮" action menu
 in the playlist and choose **"Remove from <playlist name>"**.
 
-**5b. Add missing.** Use the playlist page's **"⋮ → Add videos"** dialog, switch
-to the **"URL"** tab, and paste `https://www.youtube.com/watch?v=<videoId>` for
-each missing video. (Alternatively, open each video and use **Save → check the
-playlist**.) Adds land at the end — order is fixed in the next step.
+**5b. Add missing.** Prefer the **watch-page Save** method — it's the reliable one.
+For each missing video, navigate to `https://www.youtube.com/watch?v=<videoId>`,
+click the **"Save to playlist"** button, and click the **"Band Idea"** (target
+playlist) entry in the **"Save to…"** dialog. Adds land at the end — order is
+fixed in the next step.
+
+Two gotchas, both learned the hard way:
+- **Click the playlist entry exactly once.** YouTube's current "Save to…" dialog
+  uses button elements that **append a copy on every click** and do **not**
+  reliably expose their checked state (`aria-pressed` stays `false`). Do not
+  click twice "to be sure" — that creates a duplicate. Verify adds by reading the
+  playlist itself (see scoping note below), never by the dialog's button state.
+- The playlist page's **"Add videos" picker is unreliable**: pasting a watch URL
+  into its search box is treated as a text search ("No matching results") rather
+  than resolving the video. Skip it; use the watch-page Save flow.
+
+**5b-i. Unavailable / dead videos → find a replacement and fix `songs.json`.**
+A video can be deleted, privated, or region-locked; its watch page shows
+*"This video isn't available anymore"* (and it has no Save button). When that
+happens for a video in `target`:
+1. Search YouTube for the same song (`<artist> <title> official`) and pick the
+   best **available** upload — prefer the official artist/topic channel and the
+   studio version, matching the canonical-upload style of the other tracks.
+   Confirm the candidate actually plays (its watch page loads with a title, not
+   the unavailable message).
+2. **Update `src/data/songs.json`**: replace that song's `youtubeUrl` video ID
+   **and** the `imageUrl` thumbnail ID with the replacement's ID.
+3. Re-run `build-target.mjs` so `target` reflects the new ID, then add the
+   replacement via the watch-page Save flow.
+Mention each replacement to the user (old → new, with the reason).
 
 **5c. Reorder to match `target`.** Use only the **"Move to top"** menu action so
 you never depend on flaky drag-and-drop:
@@ -140,14 +166,29 @@ keeps up and to avoid tripping rate limits.
 
 Reload the playlist, scroll to load everything, read the final ID order, and
 confirm it equals `target` (same length, same IDs, same sequence). Report to the
-user: how many added, removed, reordered, the skipped non-YouTube songs, and
-whether the final order verified clean. If any video failed to add (e.g. private/
-deleted/region-locked), call it out by title.
+user: how many added, removed, reordered, the skipped non-YouTube songs, any
+**replacements** made for unavailable videos (old → new ID, and that `songs.json`
+was updated), and whether the final order verified clean. If any video still
+failed to add, call it out by title.
 
 ## Notes & gotchas
 
+- **Scope reads to the real playlist list.** On a playlist you own, YouTube
+  appends an auto-generated "suggested videos" section using the *same*
+  `ytd-playlist-video-renderer` element, which inflates a naive count. Read only
+  the actual items via `ytd-playlist-video-list-renderer #contents > ytd-playlist-video-renderer`
+  (and pull each video ID from the title link's `watch?v=`). Use this scoped read
+  for the current order, the diff, duplicate detection, and final verification.
+- **Driving menus reliably.** The per-item "⋮" actions (Remove from…, Move to
+  top) work well when you find the item's renderer by video ID inside the scoped
+  list, click its action-menu button, wait for the popup
+  (`ytd-menu-popup-renderer ytd-menu-service-item-renderer`), and click the
+  matching label. Re-query by ID each time — the list re-renders after every move.
+  You can run several move-to-top operations in one script pass (target order
+  reversed); each correctly lands at index 0.
 - Duplicate video IDs already in the playlist: remove the extras so each `target`
   video appears exactly once.
 - "Watch Later" / auto-generated mixes are not editable — only normal playlists.
-- This skill never pushes git changes. It edits the playlist on YouTube and (only
-  if asked) `songs.json`'s `playlistUrl`.
+- This skill never pushes git changes. It edits the playlist on YouTube, updates
+  `songs.json` when a video needs a replacement (Step 5b-i), and edits
+  `songs.json`'s `playlistUrl` only if asked (Step 2).
