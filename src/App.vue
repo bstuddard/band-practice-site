@@ -187,7 +187,9 @@ const matchingStars = computed(() => {
     const matchesTag = !t || (s.tags ?? []).some((tag) => tag.toLowerCase() === t)
     return matchesText && matchesTag
   })
-  return new Set(pre.map((s) => s.stars).filter((st): st is number => st !== null))
+  const out = new Set<number>()
+  for (const s of pre) if (s.stars !== null) out.add(s.stars)
+  return out
 })
 
 const filteredGroups = computed(() =>
@@ -288,19 +290,19 @@ function originalIndex(id: number) {
       :count="filteredSetCount"
     >
       <CreditsStrip
-        v-model=”filter”
-        v-model:tag-filter=”tagFilter”
-        v-model:stars-filter=”starsFilter”
-        :artist-roll=”artistRoll”
-        :matching-artists=”matchingArtists”
-        :all-tags=”allTags”
-        :matching-tags=”matchingTags”
-        :matching-stars=”matchingStars”
+        v-model="filter"
+        v-model:tag-filter="tagFilter"
+        v-model:stars-filter="starsFilter"
+        :artist-roll="artistRoll"
+        :matching-artists="matchingArtists"
+        :all-tags="allTags"
+        :matching-tags="matchingTags"
+        :matching-stars="matchingStars"
       />
 
-      <div v-if=”filtered.length === 0” class=”empty”>
-        <span class=”empty__mark”>∅</span>
-        Nothing matches<template v-if=”filter”> “<em>{{ filter }}</em>”</template><template v-if=”filter && tagFilter”> +</template><template v-if=”tagFilter”> tag “<em>{{ tagFilter }}</em>”</template>.
+      <div v-if="filtered.length === 0" class="empty">
+        <span class="empty__mark">∅</span>
+        Nothing matches<template v-if="filter"> "<em>{{ filter }}</em>"</template><template v-if="filter && tagFilter"> +</template><template v-if="tagFilter"> tag "<em>{{ tagFilter }}</em>"</template>.
       </div>
       <template v-else>
         <div
