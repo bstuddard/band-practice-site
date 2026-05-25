@@ -12,14 +12,66 @@ videos that aren't in the JSON, and reorder everything to match.
 
 ## Prerequisites — check these first
 
-1. **A browser-automation tool must be available** in this Claude Code session
-   (e.g. the Playwright MCP or chrome-devtools MCP server). If no such tool is
-   present, stop and tell the user: this skill needs one to edit the playlist,
-   and point them to `claude mcp add` for a browser MCP. Do **not** fall back to
-   the YouTube Data API unless the user explicitly asks.
-2. **The user must be signed in to YouTube** in that browser as the **owner** of
-   the playlist. You cannot edit a playlist you don't own. If the browser opens
-   to a signed-out state, ask the user to log in, then continue.
+This skill drives a **real, logged-in Chrome window** so it reuses the user's
+existing YouTube login (no OAuth, no app setup). The recommended engine is the
+**Chrome DevTools MCP** server attached to a Chrome started with remote
+debugging, because it connects to a browser the user already owns and is signed
+in to.
+
+If a browser-automation MCP tool is **not** available in this session, walk the
+user through this one-time setup, then continue:
+
+**1. Install the Chrome DevTools MCP server (one time):**
+
+```sh
+claude mcp add chrome-devtools --scope user -- npx -y chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:9222
+```
+
+The `--browser-url` flag tells it to attach to an already-running Chrome rather
+than launching its own throwaway browser — that's what preserves the YouTube
+login.
+
+**2. Launch Chrome with remote debugging + a persistent profile, then log in to
+YouTube** (the user runs this; keep the window open while the skill works):
+
+```sh
+# macOS
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --remote-debugging-port=9222 --user-data-dir="$HOME/.chrome-yt-sync"
+
+# Linux
+google-chrome --remote-debugging-port=9222 --user-data-dir="$HOME/.chrome-yt-sync"
+
+# Windows (PowerShell)
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" `
+  --remote-debugging-port=9222 --user-data-dir="$env:USERPROFILE\.chrome-yt-sync"
+```
+
+In that window, go to youtube.com and sign in as the **owner** of the playlist.
+(First run uses a fresh profile, so a login is expected; the `--user-data-dir`
+makes it stick for next time.)
+
+**3. Restart Claude Code** if it was running when you added the MCP server, so it
+picks up the new tools, and approve the MCP tools when prompted.
+
+**Gotchas to surface if setup fails:**
+- Chrome must already be running with `--remote-debugging-port=9222` *before* the
+  skill tries to use the browser; the port is local-only.
+- Only one Chrome instance can use a given `--user-data-dir` at a time — close
+  other Chrome windows using that profile first.
+- Requires Node/`npx` on PATH. Chrome 136+ requires the `--user-data-dir` flag
+  alongside remote debugging.
+
+**Fallback engine (Playwright MCP):** if the user prefers Playwright, install with
+`claude mcp add playwright -- npx @playwright/mcp@latest --user-data-dir="$HOME/.pw-yt-sync"`
+and have them log in to YouTube the first time the Playwright browser opens; the
+profile persists. The sync steps below work the same either way.
+
+Do **not** fall back to the YouTube Data API unless the user explicitly asks.
+
+**Always confirm the user is signed in to YouTube** as the playlist **owner**
+before editing — you cannot modify a playlist you don't own. If the browser is
+signed out, ask them to log in, then continue.
 
 ## Step 1 — Build the target order (do this before touching the browser)
 
