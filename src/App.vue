@@ -66,23 +66,28 @@ function readParams() {
 
 const initial = readParams()
 const filter = ref(initial.get('q') || '')
+const tagFilter = ref(initial.get('tag') || '')
 const stageMode = ref(initial.get('stage') === '1')
 
 // Debounce URL writes so a keystroke spree doesn't burn through replaceState.
 let urlTimer: ReturnType<typeof setTimeout> | undefined
-watch(filter, (value) => {
+function syncUrl() {
   if (urlTimer) clearTimeout(urlTimer)
   urlTimer = setTimeout(() => {
     try {
       const url = new URL(location.href)
-      if (value) url.searchParams.set('q', value)
+      if (filter.value) url.searchParams.set('q', filter.value)
       else url.searchParams.delete('q')
+      if (tagFilter.value) url.searchParams.set('tag', tagFilter.value)
+      else url.searchParams.delete('tag')
       history.replaceState(null, '', url.toString())
     } catch {
       /* ignore */
     }
   }, 250)
-})
+}
+watch(filter, syncUrl)
+watch(tagFilter, syncUrl)
 
 // Stage mode pushes a history entry on enter so the back button exits it.
 // popstate keeps `stageMode` in sync with whatever the URL says.
@@ -137,16 +142,35 @@ const artistRoll = computed<Array<[string, number]>>(() => {
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
 })
 
+const allTags = computed<string[]>(() => {
+  const tagSet = new Set<string>()
+  for (const s of songs) {
+    for (const t of s.tags ?? []) tagSet.add(t)
+  }
+  return [...tagSet].sort()
+})
+
 const filtered = computed(() => {
   const q = filter.value.trim().toLowerCase()
-  if (!q) return songs
-  return songs.filter(
-    (s) => s.artist.toLowerCase().includes(q) || s.title.toLowerCase().includes(q),
-  )
+  const t = tagFilter.value.trim().toLowerCase()
+  return songs.filter((s) => {
+    const matchesText = !q || s.artist.toLowerCase().includes(q) || s.title.toLowerCase().includes(q)
+    const matchesTag = !t || (s.tags ?? []).some((tag) => tag.toLowerCase() === t)
+    return matchesText && matchesTag
+  })
 })
 
 // Artists with at least one song surviving the current filter — drives chip dimming.
 const matchingArtists = computed(() => new Set(filtered.value.map((s) => s.artist)))
+
+// Tags with at least one song surviving the text filter — drives tag chip dimming.
+const matchingTags = computed(() => {
+  const q = filter.value.trim().toLowerCase()
+  const textFiltered = !q
+    ? songs
+    : songs.filter((s) => s.artist.toLowerCase().includes(q) || s.title.toLowerCase().includes(q))
+  return new Set(textFiltered.flatMap((s) => s.tags ?? []))
+})
 
 const filteredGroups = computed(() =>
   setGroups.value
@@ -246,14 +270,17 @@ function originalIndex(id: number) {
       :count="filteredSetCount"
     >
       <CreditsStrip
-        v-model="filter"
-        :artist-roll="artistRoll"
-        :matching-artists="matchingArtists"
+        v-model=”filter”
+        v-model:tag-filter=”tagFilter”
+        :artist-roll=”artistRoll”
+        :matching-artists=”matchingArtists”
+        :all-tags=”allTags”
+        :matching-tags=”matchingTags”
       />
 
-      <div v-if="filtered.length === 0" class="empty">
-        <span class="empty__mark">∅</span>
-        Nothing matches “<em>{{ filter }}</em>”.
+      <div v-if=”filtered.length === 0” class=”empty”>
+        <span class=”empty__mark”>∅</span>
+        Nothing matches<template v-if=”filter”> “<em>{{ filter }}</em>”</template><template v-if=”filter && tagFilter”> +</template><template v-if=”tagFilter”> tag “<em>{{ tagFilter }}</em>”</template>.
       </div>
       <template v-else>
         <div

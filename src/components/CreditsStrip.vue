@@ -3,10 +3,14 @@ const props = defineProps<{
   artistRoll: Array<[string, number]>
   modelValue: string
   matchingArtists: Set<string>
+  allTags: string[]
+  tagFilter: string
+  matchingTags: Set<string>
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
+  'update:tagFilter': [value: string]
 }>()
 
 function toggle(name: string) {
@@ -19,8 +23,19 @@ function isActive(name: string) {
 }
 
 function isDim(name: string) {
-  // Dim chips whose artist has zero songs matching the current filter (artist OR title).
   return Boolean(props.modelValue) && !props.matchingArtists.has(name)
+}
+
+function toggleTag(tag: string) {
+  emit('update:tagFilter', props.tagFilter.toLowerCase() === tag.toLowerCase() ? '' : tag)
+}
+
+function isTagActive(tag: string) {
+  return props.tagFilter.toLowerCase() === tag.toLowerCase()
+}
+
+function isTagDim(tag: string) {
+  return Boolean(props.modelValue) && !props.matchingTags.has(tag)
 }
 
 function onInput(e: Event) {
@@ -44,6 +59,23 @@ function onInput(e: Event) {
         </button>
       </li>
     </ul>
+
+    <template v-if="allTags.length > 0">
+      <div class="credits__label credits__label--tags">Tags</div>
+      <ul class="credits__list credits__list--tags">
+        <li v-for="tag in allTags" :key="tag">
+          <button
+            type="button"
+            class="credits__chip credits__chip--tag"
+            :class="{ 'is-active': isTagActive(tag), 'is-dim': isTagDim(tag) }"
+            @click="toggleTag(tag)"
+          >
+            <span class="credits__chip-name">{{ tag }}</span>
+          </button>
+        </li>
+      </ul>
+    </template>
+
     <div class="credits__search">
       <input
         type="search"
@@ -134,6 +166,23 @@ function onInput(e: Event) {
 }
 .credits__chip.is-active .credits__chip-num {
   color: var(--color-ember);
+}
+
+.credits__label--tags {
+  position: static;
+  display: inline-block;
+  margin-top: 14px;
+  margin-bottom: 6px;
+  padding: 0;
+  background: transparent;
+}
+.credits__list--tags {
+  margin-bottom: 2px;
+}
+.credits__chip--tag {
+  font-size: 11.5px;
+  padding: 4px 9px;
+  letter-spacing: 0.04em;
 }
 
 .credits__search {

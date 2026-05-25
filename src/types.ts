@@ -20,6 +20,7 @@ export interface Song {
   key: string | null
   setPosition: number | null
   durationSeconds: number | null
+  tags?: string[]
 }
 
 export function isOriginalSong(song: Song): boolean {
