@@ -72,6 +72,9 @@ const guitarLabel = computed(() =>
     <span class="row__meta">
       <span class="row__artist">{{ song.artist }}</span>
       <span class="row__title">{{ song.title }}</span>
+      <ul v-if="song.tags?.length" class="row__song-tags">
+        <li v-for="tag in song.tags" :key="tag" class="row__song-tag">{{ tag }}</li>
+      </ul>
     </span>
 
     <span class="row__tags">
@@ -264,6 +267,26 @@ a.row__art--original {
   line-height: 1.2;
   color: inherit;
   text-wrap: pretty;
+}
+
+.row__song-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 3px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.row__song-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted-2);
+  border: 1px solid var(--color-line);
+  padding: 2px 6px;
+  border-radius: 2px;
+  line-height: 1;
 }
 
 .row__stars {
