@@ -283,9 +283,9 @@ a.row__art--original {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--color-muted-2);
-  border: 1px solid var(--color-line);
+  border: 1px dashed var(--color-line);
   padding: 2px 6px;
-  border-radius: 2px;
+  border-radius: 1px;
   line-height: 1;
 }
 

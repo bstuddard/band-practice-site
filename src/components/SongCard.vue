@@ -83,6 +83,11 @@ const guitarLabel = computed(() =>
             :title="`Guitar: ${guitarLabel}`"
           >{{ guitarLabel }}</span>
           <span
+            v-for="tag in (song.tags ?? [])"
+            :key="tag"
+            class="feature__tag"
+          >{{ tag }}</span>
+          <span
             v-if="song.stars"
             class="feature__stars"
             :aria-label="`Difficulty ${song.stars} of 5`"
@@ -100,9 +105,6 @@ const guitarLabel = computed(() =>
       </div>
       <p class="feature__artist">{{ song.artist }}</p>
       <h3 class="feature__title">{{ song.title }}</h3>
-      <ul v-if="song.tags?.length" class="feature__song-tags">
-        <li v-for="tag in song.tags" :key="tag" class="feature__song-tag">{{ tag }}</li>
-      </ul>
       <ActionLinks v-if="!isOriginal || playUrl" :song="song" />
     </div>
   </article>
@@ -267,8 +269,9 @@ const guitarLabel = computed(() =>
 }
 .feature__markrow-right {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 .feature__guitar {
   font-family: var(--font-mono);
@@ -326,23 +329,15 @@ const guitarLabel = computed(() =>
   box-shadow: none;
 }
 
-.feature__song-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin: -4px 0 0;
-  padding: 0;
-  list-style: none;
-}
-.feature__song-tag {
+.feature__tag {
   font-family: var(--font-mono);
   font-size: 9px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--color-muted);
-  border: 1px solid var(--color-line);
+  border: 1px dashed var(--color-line);
   padding: 3px 7px;
-  border-radius: 2px;
+  border-radius: 1px;
   line-height: 1;
 }
 
