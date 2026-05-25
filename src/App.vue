@@ -67,6 +67,7 @@ function readParams() {
 const initial = readParams()
 const filter = ref(initial.get('q') || '')
 const tagFilter = ref(initial.get('tag') || '')
+const starsFilter = ref<number | null>(parseInt(initial.get('stars') ?? '') || null)
 const stageMode = ref(initial.get('stage') === '1')
 
 // Debounce URL writes so a keystroke spree doesn't burn through replaceState.
@@ -80,6 +81,8 @@ function syncUrl() {
       else url.searchParams.delete('q')
       if (tagFilter.value) url.searchParams.set('tag', tagFilter.value)
       else url.searchParams.delete('tag')
+      if (starsFilter.value !== null) url.searchParams.set('stars', String(starsFilter.value))
+      else url.searchParams.delete('stars')
       history.replaceState(null, '', url.toString())
     } catch {
       /* ignore */
@@ -88,6 +91,7 @@ function syncUrl() {
 }
 watch(filter, syncUrl)
 watch(tagFilter, syncUrl)
+watch(starsFilter, syncUrl)
 
 // Stage mode pushes a history entry on enter so the back button exits it.
 // popstate keeps `stageMode` in sync with whatever the URL says.
@@ -153,10 +157,12 @@ const allTags = computed<string[]>(() => {
 const filtered = computed(() => {
   const q = filter.value.trim().toLowerCase()
   const t = tagFilter.value.trim().toLowerCase()
+  const st = starsFilter.value
   return songs.filter((s) => {
     const matchesText = !q || s.artist.toLowerCase().includes(q) || s.title.toLowerCase().includes(q)
     const matchesTag = !t || (s.tags ?? []).some((tag) => tag.toLowerCase() === t)
-    return matchesText && matchesTag
+    const matchesStars = st === null || s.stars === st
+    return matchesText && matchesTag && matchesStars
   })
 })
 
@@ -170,6 +176,18 @@ const matchingTags = computed(() => {
     ? songs
     : songs.filter((s) => s.artist.toLowerCase().includes(q) || s.title.toLowerCase().includes(q))
   return new Set(textFiltered.flatMap((s) => s.tags ?? []))
+})
+
+// Star ratings present in songs surviving the text+tag filter — drives star chip dimming.
+const matchingStars = computed(() => {
+  const q = filter.value.trim().toLowerCase()
+  const t = tagFilter.value.trim().toLowerCase()
+  const pre = songs.filter((s) => {
+    const matchesText = !q || s.artist.toLowerCase().includes(q) || s.title.toLowerCase().includes(q)
+    const matchesTag = !t || (s.tags ?? []).some((tag) => tag.toLowerCase() === t)
+    return matchesText && matchesTag
+  })
+  return new Set(pre.map((s) => s.stars).filter((st): st is number => st !== null))
 })
 
 const filteredGroups = computed(() =>
@@ -272,10 +290,12 @@ function originalIndex(id: number) {
       <CreditsStrip
         v-model=”filter”
         v-model:tag-filter=”tagFilter”
+        v-model:stars-filter=”starsFilter”
         :artist-roll=”artistRoll”
         :matching-artists=”matchingArtists”
         :all-tags=”allTags”
         :matching-tags=”matchingTags”
+        :matching-stars=”matchingStars”
       />
 
       <div v-if=”filtered.length === 0” class=”empty”>

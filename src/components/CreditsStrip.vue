@@ -6,12 +6,17 @@ const props = defineProps<{
   allTags: string[]
   tagFilter: string
   matchingTags: Set<string>
+  starsFilter: number | null
+  matchingStars: Set<number>
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
   'update:tagFilter': [value: string]
+  'update:starsFilter': [value: number | null]
 }>()
+
+const STAR_LEVELS = [1, 2, 3, 4, 5] as const
 
 function toggle(name: string) {
   const current = props.modelValue.toLowerCase()
@@ -36,6 +41,18 @@ function isTagActive(tag: string) {
 
 function isTagDim(tag: string) {
   return Boolean(props.modelValue) && !props.matchingTags.has(tag)
+}
+
+function toggleStars(n: number) {
+  emit('update:starsFilter', props.starsFilter === n ? null : n)
+}
+
+function isStarsActive(n: number) {
+  return props.starsFilter === n
+}
+
+function isStarsDim(n: number) {
+  return (Boolean(props.modelValue) || Boolean(props.tagFilter)) && !props.matchingStars.has(n)
 }
 
 function onInput(e: Event) {
@@ -75,6 +92,28 @@ function onInput(e: Event) {
         </li>
       </ul>
     </template>
+
+    <div class="credits__label credits__label--tags">Difficulty</div>
+    <ul class="credits__list credits__list--stars">
+      <li v-for="n in STAR_LEVELS" :key="n">
+        <button
+          type="button"
+          class="credits__chip credits__chip--stars"
+          :class="{ 'is-active': isStarsActive(n), 'is-dim': isStarsDim(n) }"
+          :aria-label="`Filter by ${n} star difficulty`"
+          @click="toggleStars(n)"
+        >
+          <span class="credits__stars-row" aria-hidden="true">
+            <span
+              v-for="i in 5"
+              :key="i"
+              class="credits__star"
+              :class="{ 'credits__star--on': i <= n }"
+            >★</span>
+          </span>
+        </button>
+      </li>
+    </ul>
 
     <div class="credits__search">
       <input
@@ -183,6 +222,29 @@ function onInput(e: Event) {
   font-size: 11.5px;
   padding: 4px 9px;
   letter-spacing: 0.04em;
+}
+
+.credits__list--stars {
+  margin-bottom: 2px;
+}
+.credits__chip--stars {
+  padding: 5px 10px;
+}
+.credits__stars-row {
+  display: inline-flex;
+  gap: 1px;
+  font-size: 13px;
+  line-height: 1;
+}
+.credits__star {
+  color: var(--color-muted-3);
+  transition: color 0.1s;
+}
+.credits__star--on {
+  color: var(--color-muted);
+}
+.credits__chip--stars.is-active .credits__star--on {
+  color: var(--color-brass);
 }
 
 .credits__search {
