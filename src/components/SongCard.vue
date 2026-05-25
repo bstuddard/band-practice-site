@@ -100,6 +100,9 @@ const guitarLabel = computed(() =>
       </div>
       <p class="feature__artist">{{ song.artist }}</p>
       <h3 class="feature__title">{{ song.title }}</h3>
+      <ul v-if="song.tags?.length" class="feature__song-tags">
+        <li v-for="tag in song.tags" :key="tag" class="feature__song-tag">{{ tag }}</li>
+      </ul>
       <ActionLinks v-if="!isOriginal || playUrl" :song="song" />
     </div>
   </article>
@@ -321,6 +324,26 @@ const guitarLabel = computed(() =>
 }
 .feature__mark--original .feature__mark-dot {
   box-shadow: none;
+}
+
+.feature__song-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: -4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.feature__song-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  border: 1px solid var(--color-line);
+  padding: 3px 7px;
+  border-radius: 2px;
+  line-height: 1;
 }
 
 .feature__artist {
